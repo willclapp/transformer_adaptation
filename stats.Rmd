@@ -1,0 +1,72 @@
+---
+title: "Adaptation experiments"
+author: "William Clapp"
+date: "2025-08-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lme4)
+library(lmerTest)
+library(patchwork)
+library(ggdist)
+library(car)
+library(cowplot)
+library(stringi)
+
+theme_set(theme_bw())
+```
+
+```{r}
+df.selAd <- read.csv('./data/SelAd_whisper_eval.csv') %>% 
+  mutate(target_step = target_step - mean(target_step))
+df.selAd$condition <- factor(df.selAd$condition,
+                             levels = c("voiced", "voiceless", "control"))
+contrasts(df.selAd$condition) <- contr.Sum(levels(df.selAd$condition))
+
+df.semAd <- read.csv('./data/SemAd_whisper_eval.csv') %>% 
+  mutate(target_step = target_step - mean(target_step))
+df.semAd$condition <- factor(df.semAd$condition,
+                             levels = c("voiced", "voiceless", "control"))
+contrasts(df.semAd$condition) <- contr.Sum(levels(df.semAd$condition))
+```
+
+
+```{r}
+
+df.selAd %>% 
+  ggplot(mapping=aes(x=target_step, y=bin_case, color=condition, fill=condition)) +
+    geom_smooth(method="glm", method.args = list(family = "binomial"), se=TRUE, alpha = 0.25) +
+    scale_color_manual(values=c("#317d82", "#992e04", "#c8cc66")) +
+    scale_fill_manual(values=c("#317d82", "#992e04", "#c8cc66")) +
+    labs(y="Proportion voiced response", x="Step (voiceless -> voiced)", color="Condition", fill="Condition", title="Selective Adaptation")
+
+ df.semAd %>% 
+  ggplot(mapping=aes(x=target_step, y=bin_case, color=condition, fill=condition)) +
+    geom_smooth(method="glm", method.args = list(family = "binomial"), se=TRUE, alpha = 0.25) +
+    scale_color_manual(values=c("#317d82", "#992e04", "#c8cc66")) +
+    scale_fill_manual(values=c("#317d82", "#992e04", "#c8cc66")) +
+    labs(y="Proportion voiced response", x="Step (voiceless -> voiced)", color="Condition", fill="Condition", title="Semantic Adaptation")
+
+```
+
+```{r}
+m_sel <- glmer(bin_case ~ target_step * condition + (1 | target),
+           family="binomial",
+           data=df.selAd)
+summary(m_sel)
+
+
+m_sem <- glmer(bin_case ~ target_step * condition + (1 | target),
+           family="binomial",
+           data=df.semAd)
+summary(m_sem)
+```
+
+
+
+
+
+
+

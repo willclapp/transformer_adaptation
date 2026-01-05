@@ -12,7 +12,6 @@ def audiosegment_to_array(seg, target_sr=sr):
         y = librosa.resample(y, orig_sr=seg.frame_rate, target_sr=target_sr)
     return y
 
-
 def transcribe_batch(segments, processor, model, sr=16000, device=None, batch_size=8):
     model.eval()
     texts = []
