@@ -1,5 +1,8 @@
 __pycache__/
+.Rhistory
 interp.ipynb
+interp_gemini.ipynb
+attention_visualization.py
 audio/MP/hope/tgs/
 audio/NMP/
 audio/primes/mp3/
