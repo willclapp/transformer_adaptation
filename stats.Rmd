@@ -20,48 +20,62 @@ theme_set(theme_bw())
 
 ```{r}
 df.selAd <- read.csv('./data/SelAd_whisper_eval.csv') %>% 
-  mutate(target_step = target_step - mean(target_step))
+  mutate(step = step - mean(step),
+         target = sub("^([a-z]+_[a-z]+)_.+$", "\\1", trial_id),
+         case = ifelse(outcome=='voiced', 1, ifelse(outcome=='voiceless', 0, NA))) %>% 
+  select(-c(talker, target_word, transcript, trial_id, original_index))
+
 df.selAd$condition <- factor(df.selAd$condition,
                              levels = c("voiced", "voiceless", "control"))
 contrasts(df.selAd$condition) <- contr.Sum(levels(df.selAd$condition))
 
-df.semAd <- read.csv('./data/SemAd_whisper_eval.csv') %>% 
-  mutate(target_step = target_step - mean(target_step))
-df.semAd$condition <- factor(df.semAd$condition,
-                             levels = c("voiced", "voiceless", "control"))
-contrasts(df.semAd$condition) <- contr.Sum(levels(df.semAd$condition))
+# df.semAd <- read.csv('./data/SemAd_whisper_eval.csv') %>% 
+#   mutate(target_step = target_step - mean(target_step))
+# df.semAd$condition <- factor(df.semAd$condition,
+#                              levels = c("voiced", "voiceless", "control"))
+# contrasts(df.semAd$condition) <- contr.Sum(levels(df.semAd$condition))
 ```
 
 
 ```{r}
 
 df.selAd %>% 
-  ggplot(mapping=aes(x=target_step, y=bin_case, color=condition, fill=condition)) +
+  ggplot(mapping=aes(x=step, y=case, color=condition, fill=condition)) +
     geom_smooth(method="glm", method.args = list(family = "binomial"), se=TRUE, alpha = 0.25) +
-    scale_color_manual(values=c("#317d82", "#992e04", "#c8cc66")) +
-    scale_fill_manual(values=c("#317d82", "#992e04", "#c8cc66")) +
+    scale_color_manual(values=c("#992e04", "#00abad", "#c8cc66")) +
+    scale_fill_manual(values=c("#992e04", "#00abad", "#c8cc66")) +
     labs(y="Proportion voiced response", x="Step (voiceless -> voiced)", color="Condition", fill="Condition", title="Selective Adaptation")
 
- df.semAd %>% 
-  ggplot(mapping=aes(x=target_step, y=bin_case, color=condition, fill=condition)) +
-    geom_smooth(method="glm", method.args = list(family = "binomial"), se=TRUE, alpha = 0.25) +
-    scale_color_manual(values=c("#317d82", "#992e04", "#c8cc66")) +
-    scale_fill_manual(values=c("#317d82", "#992e04", "#c8cc66")) +
-    labs(y="Proportion voiced response", x="Step (voiceless -> voiced)", color="Condition", fill="Condition", title="Semantic Adaptation")
+ # df.semAd %>% 
+ #  ggplot(mapping=aes(x=target_step, y=bin_case, color=condition, fill=condition)) +
+ #    geom_smooth(method="glm", method.args = list(family = "binomial"), se=TRUE, alpha = 0.25) +
+ #    scale_color_manual(values=c("#317d82", "#992e04", "#c8cc66")) +
+ #    scale_fill_manual(values=c("#317d82", "#992e04", "#c8cc66")) +
+ #    labs(y="Proportion voiced response", x="Step (voiceless -> voiced)", color="Condition", fill="Condition", title="Semantic Adaptation")
 
 ```
 
 ```{r}
-m_sel <- glmer(bin_case ~ target_step * condition + (1 | target),
+# m_sel <- glmer(case ~ step * condition + (1 + step * condition | target),
+#            family="binomial",
+#            data=df.selAd)
+
+# Removed interaction in RE, variance = 1.1618, 0.7323
+m_sel <- glmer(case ~ step * condition + (1 + step + condition | target),
            family="binomial",
            data=df.selAd)
-summary(m_sel)
 
-
-m_sem <- glmer(bin_case ~ target_step * condition + (1 | target),
+# Removed step, variance = 2.024
+m_sel <- glmer(case ~ step * condition + (1 + condition | target),
            family="binomial",
-           data=df.semAd)
-summary(m_sem)
+           data=df.selAd)
+
+# Removed condition, variance = 2.356, 6.374
+m_sel <- glmer(case ~ step * condition + (1 | target),
+           family="binomial",
+           data=df.selAd)
+
+summary(m_sel)
 ```
 
 
@@ -69,4 +83,39 @@ summary(m_sem)
 
 
 
+
+
+
+```{r}
+df.interp <- read.csv('./data/output_distances.csv') %>% 
+  select(-c(voiced_mean, voiceless_mean, control_mean, voiced_transcript, voiceless_transcript, control_transcript, 
+            voiced_outcome, voiceless_outcome)) %>% 
+  pivot_longer(cols = c('voiced_voiceless_dist', 	'voiced_control_dist',	'voiceless_control_dist'),
+               names_to = 'comparison', values_to='distance') %>% 
+  mutate(distance = as.numeric(distance))
+
+```
+
+
+
+```{r}
+
+df.interp$comparison <- factor(df.interp$comparison,
+                             levels = c('voiced_control_dist',	'voiceless_control_dist', 'voiced_voiceless_dist'))
+contrasts(df.interp$comparison) <- contr.Sum(levels(df.interp$comparison))
+df.interp$control_outcome <- factor(df.interp$control_outcome,
+                             levels = c('voiced',	'voiceless', 'neither'))
+contrasts(df.interp$control_outcome) <- contr.Sum(levels(df.interp$control_outcome))
+
+
+m = lmer(distance ~ comparison * control_outcome + (1 | target), data = df.interp)
+summary(m)
+
+
+ggplot(data = df.interp,
+       mapping = aes(x=comparison, y=distance, color=control_outcome, fill=control_outcome)) +
+  geom_boxplot(alpha = 0.10) +
+  geom_point(alpha = 0.01)
+
+```
 

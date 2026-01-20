@@ -2,9 +2,12 @@ __pycache__/
 .Rhistory
 interp.ipynb
 interp_gemini.ipynb
+interp_claude.ipynb
+layer_interp_L2_all.ipynb
 attention_visualization.py
 audio/MP/hope/tgs/
 audio/NMP/
 audio/primes/mp3/
 resources/
 audio/praat/
+*.pkl
